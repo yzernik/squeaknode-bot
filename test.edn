@@ -47,6 +47,9 @@
    ;; optional keyword filter regexes
    ;; any posts not matching the regexes will be filtered out
    :keyword-filters [".*clojure.*"]
+   ;; optional option, shows debug output for specific transformations
+   ;; value may be one of :all-items :first-item :name-only
+   :debug-transform-process :name-only
    ;; optional replacements
    ;; When the strings on the left side of this map are encountered in the source,
    ;; they are replaced with the string on the right side of the map:

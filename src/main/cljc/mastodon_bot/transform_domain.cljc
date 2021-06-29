@@ -14,6 +14,9 @@
 (def intermediate?  (s/keys :req-un [::created-at ::text ::screen_name]
                      :opt-un [::media-links ::untrimmed-text]))
 
+(defn debug-content?
+  [input]
+  (contains? #{:all-items :first-item :name-only} input))
 (s/def ::source-type #{:twitter :rss :tumblr})
 (s/def ::resolve-urls? boolean?)
 (s/def ::content-filter string?)
@@ -21,6 +24,7 @@
 (s/def ::keyword-filter string?)
 (s/def ::keyword-filters (s/* ::keyword-filter))
 (s/def ::replacements any?)
+(s/def ::debug-transform-process debug-content?)
 (defmulti source-type :source-type)
 (defmethod source-type :twitter [_]
   (s/merge (s/keys :req-un[::source-type]) twd/twitter-source?))
@@ -38,5 +42,5 @@
 
 (s/def ::transformation (s/keys :req-un [::source ::target]
                                 :opt-un [::resolve-urls? ::content-filters ::keyword-filters 
-                                         ::replacements]))
+                                         ::replacements ::debug-transform-process]))
 (def transformations? (s/* ::transformation))

@@ -48,9 +48,9 @@
 
 (defn post-status
   ([mastodon-auth target status-text]
-   (post-status mastodon-auth target status-text nil print))
+   (post-status mastodon-auth target status-text nil infra/log))
   ([mastodon-auth target status-text media-ids]
-   (post-status mastodon-auth target status-text media-ids print))
+   (post-status mastodon-auth target status-text media-ids infra/log))
   ([mastodon-auth target status-text media-ids callback]
    (let [{:keys [visibility sensitive?]} target]
      (-> (.post (mastodon-client mastodon-auth) "statuses"
@@ -58,7 +58,8 @@
                                 (when media-ids {:media_ids media-ids})
                                 (when sensitive? {:sensitive sensitive?})
                                 (when visibility {:visibility visibility}))))
-         (.then #(-> % callback))))))
+         (.then callback)
+         (.catch infra/log-error)))))
 
 (defn-spec post-image any?
   [mastodon-auth m/mastodon-auth?
@@ -68,13 +69,14 @@
    callback fn?]
   (-> (.post (mastodon-client mastodon-auth) "media" 
              #js {:file image-stream :description description})
-      (.then #(-> % .-data .-id callback))))
+      (.then #(-> % .-data .-id callback))
+      (.catch infra/log-error)))
 
 (defn post-status-with-images
   ([mastodon-auth target status-text urls]
-   (post-status-with-images mastodon-auth target status-text urls [] print))
+   (post-status-with-images mastodon-auth target status-text urls [] infra/log))
   ([mastodon-auth target status-text urls ids]
-   (post-status-with-images mastodon-auth target status-text urls ids print))
+   (post-status-with-images mastodon-auth target status-text urls ids infra/log))
   ([mastodon-auth target status-text [url & urls] ids callback]
    (if url
      (-> request

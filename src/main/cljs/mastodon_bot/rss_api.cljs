@@ -12,7 +12,7 @@
       :or {timeout 3000}} (s/keys :opt-un [::pos-integer])]
   (rss. #js {:timeout timeout}))
 
-(defn-spec parse-feed any?
+(defn-spec parse-feed-item any?
   [item ::rd/feed-item]  
   (let [{:keys [title isoDate pubDate content link]} item]
       {:created-at (js/Date. (or isoDate pubDate))
@@ -20,6 +20,9 @@
                   "\n\n"
                   link)}))
 
-(defn-spec get-feed map?
-  [url string?]
-  (infra/resolve-promise (.parseURL (rss-client) url) []))
+(defn-spec get-feed any?
+  [url string?
+   callback fn?]
+  (-> (.parseURL (rss-client) url)
+      (.then callback)
+      (.catch infra/log-error)))
