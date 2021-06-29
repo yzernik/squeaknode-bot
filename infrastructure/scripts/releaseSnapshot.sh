@@ -1,21 +1,5 @@
-# stable release (should be done from master)
+#!/bin/bash
 
-```
-#adjust [version]
-vi package.json
-
-lein release
-git push --follow-tags
-
-# bump version - increase version and add -SNAPSHOT
-vi package.json
-git commit -am "version bump"
-git push
-```
-
-# crreate snapshot manually
-
-```
 mkdir -p target/npm-build
 shadow-cljs release app
 cp README.md target/npm-build/
@@ -25,4 +9,3 @@ sha256sum target/npm-build/mastodon-bot.js > target/npm-build/mastodon-bot.js.sh
 sha512sum target/npm-build/mastodon-bot.js > target/npm-build/mastodon-bot.js.sha512
 sed -i 's|SNAPSHOT|'$(date +"%Y%m%d%H%M%S")'|' ./target/npm-build/package.json
 npm publish ./target/npm-build --access public
-```

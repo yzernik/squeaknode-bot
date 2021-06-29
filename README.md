@@ -38,65 +38,82 @@ with later timestamps to avoid duplicate posts. On the first run the timestamp w
                  :consumer_secret "XXXX"
                  :token "XXXX"
                  :token_secret "XXXX"}}
- 
-:transform [{:source {:source-type :twitter
+ :transform 
+ [{:source {:source-type :twitter
                        ;; optional, defaults to false
-                       :include-replies? false
+            :include-replies? false
                        ;; optional, defaults to false
-                       :include-rts? false
+            :include-rts? false
                        ;; Replace Twitter links by Nitter
-                       :nitter-urls? false
+            :nitter-urls? false
                        ;; accounts you wish to mirror
-                       :accounts ["arstechnica" "WIRED"]}
-             :target {:target-type :mastodon
-                      ;; optional flag specifying wether the name of the account
-                      ;; will be appended in the post, defaults to false
-                      :append-screen-name? false
-                      ;; optional visibility flag: direct, private, unlisted, public
-                      ;; defaults to public
-                      :visibility "unlisted"
-                      ;; optional boolean to mark content as sensitive. Defaults to true.
-                      :sensitive? true
-                      ;; optional boolean defaults to false
-                      ;; only sources containing media will be posted when set to true
-                      :media-only? true
-                      ;; optional limit for the post length. Defaults to 300.
-                      :max-post-length 300
-                      ;; optional signature for posts. Defaults to "not present".
-                      :signature "#newsbot"}
-             ;; optionally try to resolve URLs in posts to skip URL shorteners
-             ;; defaults to false
-             :resolve-urls? true
-             ;; optional content filter regexes
-             ;; any posts matching the regexes will be filtered out
-             :content-filters [".*bannedsite.*"]
-             ;; optional keyword filter regexes
-             ;; any posts not matching the regexes will be filtered out
-             :keyword-filters [".*clojure.*"]
-             ;; optional replacements
-             ;; When the strings on the left side of this map are encountered in the source,
-             ;; they are replaced with the string on the right side of the map:
-             :replacements {
-               "@openSUSE" "@opensuse@fosstodon.org",
-               "@conservancy" "@conservancy@mastodon.technology"}}
+            :accounts ["arstechnica" "WIRED"]}
+   :target {:target-type :mastodon
+            ;; optional flag specifying wether the name of the account
+            ;; will be appended in the post, defaults to false
+            :append-screen-name? false
+            ;; optional visibility flag: direct, private, unlisted, public
+            ;; defaults to public
+            :visibility "unlisted"
+            ;; optional boolean to mark content as sensitive
+            :sensitive? true
+            ;; optional boolean defaults to false
+            ;; only sources containing media will be posted when set to true
+            :media-only? true
+            ;; optional limit for the post length
+            :max-post-length 300
+            ;; optional signature for posts
+            :signature "#newsbot"}
+   ;; optionally try to resolve URLs in posts to skip URL shorteners
+   ;; defaults to false
+   :resolve-urls? true
+   ;; optional content filter regexes
+   ;; any posts matching the regexes will be filtered out
+   :content-filters [".*bannedsite.*"]
+   ;; optional keyword filter regexes
+   ;; any posts not matching the regexes will be filtered out
+   :keyword-filters [".*clojure.*"]
+   ;; optional option, shows debug output for specific transformations
+   ;; value may be one of :all-items :first-item :name-only
+   :debug-transform-process :name-only
+   ;; optional replacements
+   ;; When the strings on the left side of this map are encountered in the source,
+   ;; they are replaced with the string on the right side of the map:
+   :replacements {
+     "@openSUSE " "@opensuse@fosstodon.org ",
+     "@archlinux " "",
+     "@lolamby " "",
+     "@conservancy " "@conservancy@mastodon.technology ",
+     "@prototypefund " "@PrototypeFund@mastodon.social ",
+     "@coreboot_org " "",
+     "@OpenTechFund " "",
+     "@OpenWrtSummit " "",
+     "@OpenMirage " "",
+     "@debian " "@debian@fosstodon.org ",
+     "@nixos_org " "",
+     "@lwnnet " "",
+     "@guixhpc" ""}}
 
-             {:source {:source-type :rss
-                       ;; add RSS config to follow feeds
-                       :feeds [["Hacker News" "https://hnrss.org/newest"]
-                               ["r/Clojure" "https://www.reddit.com/r/clojure/.rss"]]}
-             :target {:target-type :mastodon
-                      ...}
-             :resolve-urls? ...}
-
-             {:source {:source-type :tumblr
-                       ;; optional limit for number of posts to retrieve, default: 5
-                       :limit 10
-                       :accounts ["cyberpunky.tumblr.com" "scipunk.tumblr.com"]
-             :target {:target-type :mastodon
-                      ...}
-             :resolve-urls? ...}}
-             ]
-}
+  {:source {:source-type :rss
+            ;; add RSS config to follow feeds
+            :feeds [["Hacker News" "https://hnrss.org/newest"]
+                    ["r/Clojure" "https://www.reddit.com/r/clojure/.rss"]]}
+   :target {:target-type :mastodon
+            :append-screen-name? false
+            :signature "#rssbot"}
+   :resolve-urls? true
+   :content-filters [".*bannedsite.*"]
+   :keyword-filters [".*clojure.*"]
+   :replacements nil}
+  
+  {:source {:source-type :tumblr
+            ;; optional limit for number of posts to retrieve, default: 5
+            :limit 10
+            :accounts ["cyberpunky.tumblr.com" "scipunk.tumblr.com"]}
+   :target {:target-type :mastodon
+            :signature "#tumblrbot"}}
+  
+  ]}
 ```
 
 The bot looks for `config.edn` at its relative path by default, an alternative location can be specified either using the `MASTODON_BOT_CONFIG` environment variable or passing the path to config as an argument

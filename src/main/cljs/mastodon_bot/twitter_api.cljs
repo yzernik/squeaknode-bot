@@ -1,6 +1,5 @@
 (ns mastodon-bot.twitter-api
   (:require
-   [clojure.spec.alpha :as s]
    [orchestra.core :refer-macros [defn-spec]]
    [clojure.string :as string]
    ["twitter" :as twitter]
@@ -46,14 +45,15 @@
 (defn-spec user-timeline any?
   [twitter-auth td/twitter-auth?
    source td/twitter-source?
-   account ::td/account]
+   account ::td/account
+   callback fn?]
   (let [{:keys [include-rts? include-replies?]} source]
-    (infra/resolve-promise
-     (.get (twitter-client twitter-auth)
-           "statuses/user_timeline"
-           #js {:screen_name account
-                :tweet_mode "extended"
-                :include_rts (boolean include-rts?)
-                :exclude_replies (not (boolean include-replies?))})
-     [])))
+    (-> (.get (twitter-client twitter-auth)
+              "statuses/user_timeline"
+              #js {:screen_name account
+                   :tweet_mode "extended"
+                   :include_rts (boolean include-rts?)
+                   :exclude_replies (not (boolean include-replies?))})
+        (.then callback)
+        (.catch infra/log-error))))
   

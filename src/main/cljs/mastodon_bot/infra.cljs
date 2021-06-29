@@ -7,16 +7,10 @@
    ["node-fetch" :as fetch]))
 
 (defn log-error [item]
-  (js/console.error item)
-  item)
+  (js/console.error item))
 
 (defn log [item]
-  (js/console.log item)
-  item)
-
-(defn log-first [item]
-  (js/console.log (first item))
-  item)
+  (js/console.log item))
 
 (defn js->edn [data]
   (js->clj data :keywordize-keys true))

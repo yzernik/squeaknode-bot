@@ -12,12 +12,22 @@
    [mastodon-bot.tumblr-api :as ta]
    [mastodon-bot.transform-domain :as trd]))
 
+(defn stream-log-item [name debug-transform-process data]
+  (when (some? debug-transform-process)
+    (cond (= debug-transform-process :all-items)
+          (infra/log (str name " " data))
+          (= debug-transform-process :first-item)
+          (infra/log (str name " " (first data)))
+          (= debug-transform-process :name-only)
+          (infra/log (str name))))
+  data)
+
 (def shortened-url-pattern #"(https?://)?(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,}))\.?)(?::\d{2,5})?(?:[/?#]\S*)?")
 
 (defn-spec intermediate-resolve-urls trd/intermediate?
   [resolve-urls? ::trd/resolve-urls?
    input trd/intermediate?]
-  (if resolve-urls?
+  (if false ;resolve-urls?
     (update input :text #(string/replace % shortened-url-pattern infra/resolve-url))
     input))
 
@@ -43,20 +53,26 @@
   (update input :text #(reduce-kv string/replace % (:replacements transformation))))
 
 (defn-spec post-tweets-to-mastodon any?
-  [tweets any?
+  [name string?
    mastodon-auth md/mastodon-auth?
    transformation ::trd/transformation
    last-post-time any?]
-  (let [{:keys [source target resolve-urls?]} transformation]
-    (->> (infra/js->edn tweets)
-         (map twa/parse-tweet)
-         (filter #(> (:created-at %) last-post-time))
-         (remove #(blocked-content? transformation (:text %)))
-         (map #(intermediate-resolve-urls resolve-urls? %))
-         (map #(twa/nitter-url source %))
-         (map #(perform-replacements transformation %))
-         (map #(ma/intermediate-to-mastodon target %))
-         (ma/post-items mastodon-auth target))))
+  (fn [tweets]
+    (let [{:keys [source target resolve-urls? debug-transform-process]} transformation]
+      (->> (infra/js->edn tweets)
+           (stream-log-item (str "  payload for " name) debug-transform-process)
+           (map twa/parse-tweet)
+           (stream-log-item "  items parsed" debug-transform-process)
+           (filter #(> (:created-at %) last-post-time))
+           (stream-log-item "  items filtered" debug-transform-process)
+           (remove #(blocked-content? transformation (:text %)))
+           (map #(intermediate-resolve-urls resolve-urls? %))
+           (map #(twa/nitter-url source %))
+           (map #(perform-replacements transformation %))
+           (stream-log-item "  blocked, resolved urls & replaced" debug-transform-process)
+           (map #(ma/intermediate-to-mastodon target %))
+           (stream-log-item "  convert to mastodon format" debug-transform-process)
+           (ma/post-items mastodon-auth target)))))
 
 (defn-spec tweets-to-mastodon any?
   [mastodon-auth md/mastodon-auth?
@@ -67,9 +83,15 @@
         accounts (:accounts source)]
     (infra/log (str "processing tweets for " accounts))
     (doseq [account accounts]
-      (->  (twa/user-timeline twitter-auth source account)
-           (post-tweets-to-mastodon mastodon-auth transformation last-post-time)))
-    (infra/log "done.")))
+      (twa/user-timeline
+       twitter-auth
+       source
+       account
+       (post-tweets-to-mastodon
+        account
+        mastodon-auth
+        transformation
+        last-post-time)))))
 
 (defn-spec post-tumblr-to-mastodon any?
   [mastodon-auth md/mastodon-auth?
@@ -98,30 +120,34 @@
     (infra/log (str "processing tumblr for " accounts))
     (doseq [account accounts]
       (let [client (ta/tumblr-client tumblr-auth account)]
-        (.posts client 
+        (.posts client
                 #js {:limit (or limit 5)}
                 (post-tumblr-to-mastodon
                  mastodon-auth
                  transformation
-                 last-post-time)
-                )))))
+                 last-post-time))))))
 
-(defn-spec post-rss-to-mastodon any?
-  [payload any?
+(defn-spec post-rss-to-mastodon fn?
+  [name string?
    mastodon-auth md/mastodon-auth?
    transformation ::trd/transformation
    last-post-time any?]
-  (let [{:keys [source target resolve-urls?]} transformation]
-    (->> (infra/js->edn payload)
-         (:items)
-         (map ra/parse-feed)
-         (filter #(> (:created-at %) last-post-time))
-         (remove #(blocked-content? transformation (:text %)))
-         (map #(intermediate-resolve-urls resolve-urls? %))
-         (map #(perform-replacements transformation %))
-         (map #(ma/intermediate-to-mastodon target %))
-         (ma/post-items mastodon-auth target))))
-
+  (let [{:keys [source target resolve-urls? debug-transform-process]} transformation]
+    (fn [payload]
+      (->> (infra/js->edn payload)
+           (stream-log-item (str "  payload for " name) debug-transform-process)
+           (:items)
+           (map ra/parse-feed-item)
+           (stream-log-item "  items parsed" debug-transform-process)
+           (filter #(> (:created-at %) last-post-time))
+           (stream-log-item "  items filtered" debug-transform-process)
+           (remove #(blocked-content? transformation (:text %)))
+           (map #(intermediate-resolve-urls resolve-urls? %))
+           (map #(perform-replacements transformation %))
+           (stream-log-item "  blocked, resolved urls & replaced" debug-transform-process)
+           (map #(ma/intermediate-to-mastodon target %))
+           (stream-log-item "  convert to mastodon format" debug-transform-process)
+           (ma/post-items mastodon-auth target)))))
 
 (defn-spec rss-to-mastodon any?
   [mastodon-auth md/mastodon-auth?
@@ -131,6 +157,10 @@
         {:keys [feeds]} source]
     (infra/log (str "processing rss for " feeds))
     (doseq [[name url] feeds]
-      (-> (ra/get-feed url)
-          (post-rss-to-mastodon mastodon-auth transformation last-post-time)))
-    (infra/log "done.")))
+      (ra/get-feed
+       url
+       (post-rss-to-mastodon
+        name
+        mastodon-auth
+        transformation
+        last-post-time)))))
