@@ -13,7 +13,7 @@ class MyBuild(DevopsDockerBuild):
 
 @init
 def initialize(project):
-    project.build_depends_on('ddadevops>=0.8.19')
+    project.build_depends_on('ddadevops>=0.12.4')
     stage = 'notused'
     dockerhub_user = environ.get('DOCKERHUB_USER')
     if not dockerhub_user:
@@ -24,7 +24,7 @@ def initialize(project):
     tag = get_tag_from_latest_commit()
     print("tag: ", tag)
     config = create_devops_docker_build_config(
-        stage, PROJECT_ROOT_PATH, MODULE, dockerhub_user, dockerhub_password, docker_publish_tag=tag)
+        stage, PROJECT_ROOT_PATH, MODULE, dockerhub_user, dockerhub_password)
     build = MyBuild(project, config)
     build.initialize_build_dir()
 
