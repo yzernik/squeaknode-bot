@@ -1,4 +1,4 @@
-(defproject dda/mastodon-bot "1.13.6"
+(defproject dda/mastodon-bot "1.13.7-SNAPSHOT"
   :description "Bot to publish twitter, tumblr or rss posts to an mastodon account."
   :url "https://github.com/yogthos/mastodon-bot"
   :author "Dmitri Sotnikov"
