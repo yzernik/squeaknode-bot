@@ -120,6 +120,14 @@ The bot looks for `config.edn` at its relative path by default, an alternative l
 
 Transformations have source `(s/def ::source-type #{:twitter :rss :tumblr})` und target `(s/def ::target-type #{:mastodon})` you can combine freely. Multiple transformations for same source-target combination are possible. Source and targets refer to the auth section for their credentials.
 
+## Alternatives
+
+There are other good alternatives:
+* BirdsiteLive - Follow your twitter-friends on mastodon
+  * Public instance: https://birdsite.slashdev.space/
+  * Source: https://github.com/NicolasConstant/BirdsiteLive
+
+
 ## License
 
 Copyright © 2018 Dmitri Sotnikov
